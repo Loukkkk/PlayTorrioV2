@@ -9,19 +9,17 @@ import 'stream_extractor.dart';
 
 // ── Dynamic base URL ───────────────────────────────────────────────────────
 //
-// Larozaa rotates its real host (currently `larozaa.homes`, previously
-// `larozaa.com` etc.) and uses `https://larozaa.bond` purely as a stable
 // bootstrap that 30x-redirects to whatever the active host is today.
 //
 // On startup we hit the bootstrap, follow redirects, and cache the
 // scheme+host of the final URL in SharedPreferences. Subsequent runs use
 // the cached value immediately and re-resolve in the background so the
 // next session picks up any new host change.
-const String _bootstrapUrl = 'https://larozaa.bond';
+const String _bootstrapUrl = 'http://127.0.0.1';
 const String _baseUrlPrefsKey = 'larozaa_base_url_v1';
 const Duration _baseUrlMaxAge = Duration(hours: 12);
 
-String _baseUrl = 'https://larozaa.bond'; // mutated after _ensureBase()
+String _baseUrl = 'http://127.0.0.1'; // mutated after _ensureBase()
 Future<void>? _baseUrlInitFuture;
 DateTime? _baseUrlResolvedAt;
 
@@ -45,15 +43,13 @@ Future<void> _initBaseUrl() async {
 }
 
 Future<void> _refreshBaseUrl() async {
-  // Try a chain of bootstrap URLs. The official one is `larozaa.bond` but
   // we also keep a couple of last-known mirrors so a dead bootstrap doesn't
   // strand the user. The first response that lands on a host containing
-  // "laroza" wins.
   const bootstraps = <String>[
     _bootstrapUrl,
-    'https://larozaa.home',
-    'https://larozaa.homes',
-    'https://larozaa.com',
+    'http://127.0.0.1',
+    'http://127.0.0.1',
+    'http://127.0.0.1',
   ];
   for (final boot in bootstraps) {
     try {
@@ -70,9 +66,8 @@ Future<void> _refreshBaseUrl() async {
       await streamed.stream.drain<void>();
       final finalUri = streamed.request?.url ?? Uri.parse(boot);
       final resolved = '${finalUri.scheme}://${finalUri.host}';
-      // Sanity check: must look like a real laroza host.
       if (!resolved.startsWith('http') ||
-          !finalUri.host.toLowerCase().contains('laroza')) {
+          finalUri.host.toLowerCase().contains('laroza')) {
         debugPrint('[ArabicService] bootstrap $boot did not resolve to a laroza host '
             '(got $resolved) — trying next');
         continue;
