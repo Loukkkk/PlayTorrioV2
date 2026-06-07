@@ -84,11 +84,9 @@ class _ArabicScreenState extends State<ArabicScreen> {
       _service.searchDimaToon(query),
     ]);
     // Merge order determines priority when titles collide: brstej first,
-    // then larozaa, then dimatoon.
     final merged = [...results[0], ...results[1], ...results[2]];
 
     // Cross-source dedup: collapse entries that look like the same show
-    // (same normalized title) into one — prefer larozaa, then brstej, then
     // dimatoon, matching the order results were appended in.
     String norm(String t) => t
         .toLowerCase()
