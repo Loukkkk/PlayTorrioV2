@@ -7,7 +7,7 @@ import 'player_screen.dart';
 class ArabicPlayerScreen extends StatefulWidget {
   final String videoId;
   final String title;
-  final String source; // 'larozaa' or 'dimatoon'
+  final String source;
 
   const ArabicPlayerScreen({
     super.key,
