@@ -227,17 +227,31 @@ class _PlayTorrioAppState extends State<PlayTorrioApp> with WidgetsBindingObserv
     }
   }
 
+  /// True on Windows, Linux, macOS — used to disable the accessibility
+  /// bridge that causes AXTree crashes on Windows.
+  static final bool _isDesktop =
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<AppThemePreset>(
       valueListenable: AppTheme.themeNotifier,
       builder: (context, preset, _) {
-        return MaterialApp(
+        Widget app = MaterialApp(
           title: 'PlayTorrio Native',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.themeData,
           home: const SplashScreen(),
         );
+        // On desktop, disable the semantics / accessibility tree entirely.
+        // Flutter's Windows accessibility bridge has a known bug where the
+        // ui::AXTree gets out of sync, spamming errors and eventually
+        // crashing the app. Since PlayTorrio doesn't target screen-reader
+        // users on desktop, this is a safe and effective workaround.
+        if (_isDesktop) {
+          app = ExcludeSemantics(child: app);
+        }
+        return app;
       },
     );
   }
