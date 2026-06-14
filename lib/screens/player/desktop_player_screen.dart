@@ -1336,13 +1336,6 @@ class _DesktopPlayerScreenState extends State<DesktopPlayerScreen>
       // disable cache-pause so playback keeps moving when the demuxer
       // briefly drains while waiting on the next piece.
       await mpv.setProperty('cache', 'yes');
-      await mpv.setProperty('cache-secs', '5');
-      await mpv.setProperty('cache-pause-wait', '1');
-      await mpv.setProperty('cache-pause-initial', 'no');
-      await mpv.setProperty('cache-pause', 'no');
-      await mpv.setProperty('demuxer-readahead-secs', '2');
-      await mpv.setProperty('demuxer-max-bytes', '64MiB');
-      await mpv.setProperty('demuxer-max-back-bytes', '16MiB');
       await mpv.setProperty('network-timeout', '15');
       await mpv.setProperty('force-seekable', 'yes');
       await mpv.setProperty('hr-seek', 'yes');

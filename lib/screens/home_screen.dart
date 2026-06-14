@@ -2049,9 +2049,7 @@ class _ContinueWatchingSectionState extends State<_ContinueWatchingSection> {
       // re-open the StreamingDetailsScreen which auto-runs the extraction
       // splash and then forwards startPosition to the player so it seeks
       // once the duration loads.
-      final isStreamingEntry = method == 'stream' ||
-          method == 'amri' ||
-          method == 'stremio_direct';
+      final isStreamingEntry = method == 'stream' || method == 'amri';
       if (isStreamingEntry) {
         if (mounted) {
           final mediaType =
@@ -2095,79 +2093,43 @@ class _ContinueWatchingSectionState extends State<_ContinueWatchingSection> {
       String? stremioAddonBase;
 
       if (method == 'stremio_direct') {
-        // Direct stremio stream — try the saved URL first
-        final savedUrl = item['streamUrl'] as String?;
         stremioItemId = item['stremioId'] as String?;
         stremioAddonBase = item['stremioAddonBaseUrl'] as String?;
-        activeProvider = 'stremio_direct';
 
-        if (savedUrl != null && savedUrl.isNotEmpty) {
-          // Try playing the saved URL directly
-          streamUrl = savedUrl;
-          debugPrint('[Resume] Trying saved stremio direct URL: $savedUrl');
-        }
-
-        // If no saved URL, or if player fails, we'll fall through to the
-        // "open details page" fallback below
-        if (streamUrl == null && stremioItemId != null && stremioAddonBase != null) {
-          // Re-fetch streams from the addon
-          debugPrint('[Resume] Re-fetching stremio streams for $stremioItemId from $stremioAddonBase');
-          final stremioType = item['stremioType'] as String? ?? (season != null ? 'series' : 'movie');
-          final stremio = StremioService();
-          try {
-            final streams = await stremio.getStreams(
-              baseUrl: stremioAddonBase,
-              type: stremioType,
-              id: stremioItemId,
-            );
-            if (streams.isNotEmpty) {
-              final first = streams.first;
-              if (first is Map<String, dynamic> && first['url'] != null) {
-                streamUrl = first['url'] as String;
-              }
-            }
-          } catch (e) {
-            debugPrint('[Resume] Re-fetch stremio streams failed: $e');
+        if (mounted) {
+          final mediaType = item['mediaType'] as String? ?? (season != null ? 'tv' : 'movie');
+          final movie = Movie(
+            id: tmdbId,
+            title: title,
+            posterPath: posterPath,
+            backdropPath: '',
+            overview: '',
+            releaseDate: '',
+            voteAverage: 0,
+            mediaType: mediaType,
+            genres: [],
+            imdbId: item['imdbId'],
+          );
+          Map<String, dynamic>? stremioItem;
+          if (stremioItemId != null) {
+            stremioItem = {
+              'id': stremioItemId,
+              '_addonBaseUrl': stremioAddonBase ?? '',
+              'type': item['stremioType'] ?? (season != null ? 'series' : 'movie'),
+              'name': title,
+            };
           }
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => DetailsScreen(
+              movie: movie,
+              stremioItem: stremioItem,
+              initialSeason: season,
+              initialEpisode: episode,
+              startPosition: startPos,
+            ),
+          ));
         }
-
-        // If we still have nothing, open the details page
-        if (streamUrl == null) {
-          if (mounted) {
-            final mediaType = item['mediaType'] as String? ?? (season != null ? 'tv' : 'movie');
-            final movie = Movie(
-              id: tmdbId,
-              title: title,
-              posterPath: posterPath,
-              backdropPath: '',
-              overview: '',
-              releaseDate: '',
-              voteAverage: 0,
-              mediaType: mediaType,
-              genres: [],
-              imdbId: item['imdbId'],
-            );
-            Map<String, dynamic>? stremioItem;
-            if (stremioItemId != null) {
-              stremioItem = {
-                'id': stremioItemId,
-                '_addonBaseUrl': stremioAddonBase ?? '',
-                'type': item['stremioType'] ?? (season != null ? 'series' : 'movie'),
-                'name': title,
-              };
-            }
-            Navigator.push(context, MaterialPageRoute(
-              builder: (_) => DetailsScreen(
-                movie: movie,
-                stremioItem: stremioItem,
-                initialSeason: season,
-                initialEpisode: episode,
-                startPosition: startPos,
-              ),
-            ));
-          }
-          return; // Skip the player launch below
-        }
+        return; // Skip the player launch below
       } else if (method == 'stream') {
         // Re-extract stream using saved sourceId (tmdbId + season + episode)
         final sourceId = item['sourceId'] as String;

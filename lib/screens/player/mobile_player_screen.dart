@@ -645,14 +645,19 @@ class _MobilePlayerScreenState extends State<MobilePlayerScreen>
       _initPlayback();
       _startHideTimer();
       _fetchSubtitles();
-      // Initialize brightness from current screen level
-      ScreenBrightness().application.then((b) {
-        if (mounted) setState(() => _brightness = b);
-      }).catchError((_) {
-        ScreenBrightness().system.then((b) {
+      // Initialize brightness from current screen level.
+      // ScreenBrightness only works reliably on mobile — on desktop it
+      // spams "Problem getting monitor brightness" errors because most
+      // external monitors lack DDC/CI support.
+      if (Platform.isAndroid || Platform.isIOS) {
+        ScreenBrightness().application.then((b) {
           if (mounted) setState(() => _brightness = b);
-        }).catchError((_) {});
-      });
+        }).catchError((_) {
+          ScreenBrightness().system.then((b) {
+            if (mounted) setState(() => _brightness = b);
+          }).catchError((_) {});
+        });
+      }
       // Trakt scrobble start
       if (widget.movie != null) {
         TraktService().scrobbleStart(
@@ -691,8 +696,10 @@ class _MobilePlayerScreenState extends State<MobilePlayerScreen>
   void dispose() {
     _saveWatchHistory();
 
-    // Restore screen brightness to system default
-    try { ScreenBrightness().resetApplicationScreenBrightness(); } catch (_) {}
+    // Restore screen brightness to system default (mobile only)
+    if (Platform.isAndroid || Platform.isIOS) {
+      try { ScreenBrightness().resetApplicationScreenBrightness(); } catch (_) {}
+    }
 
     // Don't set orientation here — _exitPlayer() already locks portrait
     // BEFORE popping.  Changing orientation during dispose while
@@ -1434,13 +1441,6 @@ class _MobilePlayerScreenState extends State<MobilePlayerScreen>
       // disable cache-pause so playback keeps moving when the demuxer
       // briefly drains while waiting on the next piece.
       await mpv.setProperty('cache', 'yes');
-      await mpv.setProperty('cache-secs', '5');
-      await mpv.setProperty('cache-pause-wait', '1');
-      await mpv.setProperty('cache-pause-initial', 'no');
-      await mpv.setProperty('cache-pause', 'no');
-      await mpv.setProperty('demuxer-readahead-secs', '2');
-      await mpv.setProperty('demuxer-max-bytes', '64MiB');
-      await mpv.setProperty('demuxer-max-back-bytes', '16MiB');
       await mpv.setProperty('network-timeout', '15');
       await mpv.setProperty('force-seekable', 'yes');
       await mpv.setProperty('hr-seek', 'yes');
@@ -1595,9 +1595,11 @@ class _MobilePlayerScreenState extends State<MobilePlayerScreen>
       });
     } else {
       _brightness = (_brightness + delta / 300).clamp(0.0, 1.0);
-      try {
-        ScreenBrightness().setApplicationScreenBrightness(_brightness);
-      } catch (_) {}
+      if (Platform.isAndroid || Platform.isIOS) {
+        try {
+          ScreenBrightness().setApplicationScreenBrightness(_brightness);
+        } catch (_) {}
+      }
       setState(() {
         _showBrightnessIndicator = true;
         _showVolumeIndicator = false;
